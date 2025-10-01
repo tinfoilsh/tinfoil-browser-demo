@@ -1,0 +1,10 @@
+{
+  "name": "Tinfoil Browser Integration Demo",
+  "short_name": "Tinfoil Demo",
+  "description": "A barebones browser integration demo for testing Tinfoil's inference API",
+  "theme_color": "#111827",
+  "background_color": "#111827",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait-primary"
+}
