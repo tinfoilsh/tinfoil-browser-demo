@@ -5,4 +5,4 @@ export const INFERENCE_PROXY_URL = (
   process.env.NEXT_PUBLIC_INFERENCE_PROXY_URL ?? 'https://inference.tinfoil.sh'
 ).replace(/\/$/, '')
 
-export const DEFAULT_MODEL = process.env.NEXT_PUBLIC_DEFAULT_MODEL ?? ''
+export const DEFAULT_MODEL = 'gpt-oss-120b'

@@ -1,11 +1,11 @@
 'use client'
 
-import { getAIModels, type ChatModel } from '@/app/config/models'
+import { CONSTANTS } from '@/chat/constants'
 import { SettingsSidebar } from '@/chat/settings-sidebar'
 import { useChatSettings } from '@/chat/use-chat-settings'
 import { ArrowUpIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { TinfoilAI } from 'tinfoil'
 
 type ChatRole = 'user' | 'assistant'
@@ -18,7 +18,6 @@ export type ChatMessage = {
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [models, setModels] = useState<ChatModel[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -29,10 +28,9 @@ export function ChatInterface() {
     setApiKey: persistApiKey,
     systemPrompt,
     setSystemPrompt: persistSystemPrompt,
-    selectedModelName,
-    setSelectedModelName: persistModelName,
-    isHydrated: settingsHydrated,
   } = useChatSettings()
+
+  const modelName = CONSTANTS.DEFAULT_MODEL
 
   // initialize tinfoil client with custom baseURL and configRepo
   // that support encrypted-http body payloads that are encrypted
@@ -46,48 +44,8 @@ export function ChatInterface() {
     })
   }, [apiKey])
 
-  useEffect(() => {
-    let mounted = true
-
-    const loadModels = async () => {
-      const fetchedModels = await getAIModels()
-      if (!mounted) return
-
-      setModels(fetchedModels)
-
-      if (fetchedModels.length === 0) return
-
-      const storedModel =
-        settingsHydrated && selectedModelName
-          ? fetchedModels.find((model) => model.modelName === selectedModelName)
-          : null
-
-      const nextModelName = storedModel?.modelName || fetchedModels[0].modelName
-
-      if (nextModelName !== selectedModelName) {
-        persistModelName(nextModelName)
-      }
-    }
-
-    void loadModels()
-
-    return () => {
-      mounted = false
-    }
-  }, [persistModelName, selectedModelName, settingsHydrated])
-
-  const selectedModel = useMemo(
-    () => models.find((model) => model.modelName === selectedModelName) || null,
-    [models, selectedModelName],
-  )
-
   const handleStream = useCallback(
     async (conversation: ChatMessage[], assistantId: string) => {
-      if (!selectedModel) {
-        setStreamError('Select a model before sending a message.')
-        return
-      }
-
       if (!apiKey.trim()) {
         setStreamError('Add an API key in settings before sending a message.')
         return
@@ -100,7 +58,7 @@ export function ChatInterface() {
         await tinfoilClient.ready()
 
         const completionStream = await tinfoilClient.chat.completions.create({
-          model: selectedModel.modelName,
+          model: modelName,
           messages: [
             { role: 'system' as const, content: systemPrompt },
             ...conversation
@@ -155,7 +113,7 @@ export function ChatInterface() {
         setIsStreaming(false)
       }
     },
-    [apiKey, selectedModel, systemPrompt, tinfoilClient],
+    [apiKey, modelName, systemPrompt, tinfoilClient],
   )
 
   const sendMessage = useCallback(
@@ -198,9 +156,6 @@ export function ChatInterface() {
       <SettingsSidebar
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        models={models}
-        selectedModelName={selectedModelName}
-        onSelectModel={persistModelName}
         apiKey={apiKey}
         onChangeApiKey={persistApiKey}
         systemPrompt={systemPrompt}
@@ -210,9 +165,7 @@ export function ChatInterface() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
           <div className="hidden text-sm text-content-secondary md:block">
-            {selectedModel
-              ? (selectedModel.name ?? selectedModel.modelName)
-              : 'Select a model'}
+            {modelName}
           </div>
 
           <div className="flex items-center gap-3">
@@ -230,10 +183,7 @@ export function ChatInterface() {
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-6">
             {messages.length === 0 ? (
-              <EmptyState
-                selectedModel={selectedModel}
-                hasModels={models.length > 0}
-              />
+              <EmptyState modelName={modelName} />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-4">
                 {messages.map((message) => (
@@ -327,22 +277,17 @@ function MessageBubble({ message }: MessageBubbleProps) {
 }
 
 type EmptyStateProps = {
-  selectedModel: ChatModel | null
-  hasModels: boolean
+  modelName: string
 }
 
-function EmptyState({ selectedModel, hasModels }: EmptyStateProps) {
+function EmptyState({ modelName }: EmptyStateProps) {
   return (
     <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center gap-4 text-center text-content-muted">
       <h2 className="text-lg font-semibold text-content-primary">
         Tinfoil Browser Integration Demo
       </h2>
       <div className="rounded-md border border-border-subtle bg-surface-card px-4 py-2 text-xs text-content-secondary">
-        {hasModels
-          ? selectedModel
-            ? `Current model: ${selectedModel.name ?? selectedModel.modelName}`
-            : 'Open settings to select a model.'
-          : 'No models available. Ensure NEXT_PUBLIC_API_BASE_URL is set and the API is reachable.'}
+        {`Current model: ${modelName}`}
       </div>
     </div>
   )
