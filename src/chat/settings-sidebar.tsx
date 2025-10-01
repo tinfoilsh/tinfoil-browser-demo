@@ -5,14 +5,9 @@ import Image from 'next/image'
 
 import clsx from 'clsx'
 
-import type { ChatModel } from '@/app/config/models'
-
 type SettingsSidebarProps = {
   isOpen: boolean
   onClose: () => void
-  models: ChatModel[]
-  selectedModelName: string
-  onSelectModel: (modelName: string) => void
   apiKey: string
   onChangeApiKey: (value: string) => void
   systemPrompt: string
@@ -22,9 +17,6 @@ type SettingsSidebarProps = {
 export function SettingsSidebar({
   isOpen,
   onClose,
-  models,
-  selectedModelName,
-  onSelectModel,
   apiKey,
   onChangeApiKey,
   systemPrompt,
@@ -74,30 +66,6 @@ export function SettingsSidebar({
         </div>
 
         <div className="max-h-[calc(100dvh-8rem)] space-y-6 overflow-y-auto px-6 text-sm">
-          <div className="space-y-2">
-            <label
-              htmlFor="model"
-              className="block text-xs font-medium text-content-secondary"
-            >
-              Model
-            </label>
-            <select
-              id="model"
-              value={selectedModelName}
-              onChange={(event) => onSelectModel(event.target.value)}
-              className="w-full rounded-md border border-border-subtle bg-surface-chat px-3 py-2 text-sm text-content-primary focus:border-border-strong focus:outline-none"
-            >
-              <option value="" disabled>
-                Select a model
-              </option>
-              {models.map((model) => (
-                <option key={model.modelName} value={model.modelName}>
-                  {model.name ?? model.modelName}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="space-y-2">
             <label
               htmlFor="api-key"
