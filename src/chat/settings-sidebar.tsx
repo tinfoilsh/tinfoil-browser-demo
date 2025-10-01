@@ -19,8 +19,6 @@ type SettingsSidebarProps = {
   onChangeSystemPrompt: (value: string) => void
 }
 
-const REPO_URL = 'https://github.com/tinfoilsh/browser-integration-demo'
-
 export function SettingsSidebar({
   isOpen,
   onClose,
@@ -55,7 +53,7 @@ export function SettingsSidebar({
                 Browser Integration Demo
               </h2>
               <a
-                href={REPO_URL}
+                href="https://github.com/tinfoilsh/tinfoil-browser-demo"
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-content-muted underline-offset-2 hover:text-content-secondary hover:underline"
