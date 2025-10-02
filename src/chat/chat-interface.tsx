@@ -91,13 +91,6 @@ export function ChatInterface() {
   const loadVerificationDocument = useCallback(async () => {
     if (!isMountedRef.current) return
 
-    if (!apiKey) {
-      setVerificationDocument(null)
-      setVerificationState('idle')
-      setVerificationError(null)
-      return
-    }
-
     setVerificationState('loading')
     setVerificationError(null)
 
@@ -120,7 +113,7 @@ export function ChatInterface() {
       setVerificationError(message)
       setVerificationState('error')
     }
-  }, [apiKey, tinfoilClient])
+  }, [tinfoilClient])
 
   useEffect(() => {
     void loadVerificationDocument()
@@ -168,9 +161,8 @@ export function ChatInterface() {
     if (verificationState === 'error') {
       return 'Verification failed'
     }
-    if (!apiKey) return 'Add API key to verify'
     return 'Verification center'
-  }, [apiKey, verificationState])
+  }, [verificationState])
 
   const verificationTooltip = useMemo(() => {
     if (verificationState === 'error') {
