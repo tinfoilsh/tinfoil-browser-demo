@@ -1,8 +1,12 @@
 'use client'
 
-import { CONSTANTS } from '@/chat/constants'
 import { SettingsSidebar } from '@/chat/settings-sidebar'
 import { useChatSettings } from '@/chat/use-chat-settings'
+import {
+  DEFAULT_MODEL,
+  INFERENCE_PROXY_REPO,
+  INFERENCE_PROXY_URL,
+} from '@/config'
 import {
   ArrowUpIcon,
   Cog6ToothIcon,
@@ -47,7 +51,7 @@ export function ChatInterface() {
     setSystemPrompt: persistSystemPrompt,
   } = useChatSettings()
 
-  const modelName = CONSTANTS.DEFAULT_MODEL
+  const modelName = DEFAULT_MODEL
 
   // initialize tinfoil client with custom baseURL and configRepo
   // that support encrypted-http body payloads that are encrypted
@@ -55,8 +59,8 @@ export function ChatInterface() {
   const tinfoilClient = useMemo(() => {
     return new TinfoilAI({
       dangerouslyAllowBrowser: true,
-      baseURL: 'https://ehbp.inf6.tinfoil.sh/v1/',
-      configRepo: 'tinfoilsh/confidential-inference-proxy-hpke',
+      baseURL: INFERENCE_PROXY_URL,
+      configRepo: INFERENCE_PROXY_REPO || undefined,
       apiKey: apiKey.trim() || 'placeholder-key-not-yet-configured',
     })
   }, [apiKey])
@@ -425,8 +429,8 @@ export function ChatInterface() {
         mode="modal"
         is-dark-mode="false"
         show-verification-flow="false"
-        config-repo={'tinfoilsh/confidential-inference-proxy-hpke'}
-        base-url={'https://ehbp.inf6.tinfoil.sh/v1/'}
+        config-repo={INFERENCE_PROXY_REPO}
+        base-url={INFERENCE_PROXY_URL}
       />
     </>
   )
