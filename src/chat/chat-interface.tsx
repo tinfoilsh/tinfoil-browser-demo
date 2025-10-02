@@ -166,11 +166,18 @@ export function ChatInterface() {
     if (verificationState === 'success') return 'Enclave verified'
     if (verificationState === 'loading') return 'Verifying enclave...'
     if (verificationState === 'error') {
-      return verificationError ?? 'Verification unavailable'
+      return 'Verification failed'
     }
     if (!apiKey) return 'Add API key to verify'
     return 'Verification center'
-  }, [apiKey, verificationError, verificationState])
+  }, [apiKey, verificationState])
+
+  const verificationTooltip = useMemo(() => {
+    if (verificationState === 'error') {
+      return verificationError ?? 'Verification unavailable'
+    }
+    return verificationLabel
+  }, [verificationError, verificationLabel, verificationState])
 
   const handleStream = useCallback(
     async (conversation: ChatMessage[], assistantId: string) => {
@@ -327,7 +334,7 @@ export function ChatInterface() {
                   setIsVerifierOpen((prev) => !prev)
                 }}
                 className="rounded-md border border-border-subtle bg-surface-chat p-2 text-content-muted transition hover:text-content-primary md:hidden"
-                title={verificationLabel}
+                title={verificationTooltip}
               >
                 <ShieldCheckIcon className={verificationStatusIconClass} />
               </button>
@@ -343,7 +350,7 @@ export function ChatInterface() {
                   setIsVerifierOpen((prev) => !prev)
                 }}
                 className={verificationButtonClass}
-                title={verificationLabel}
+                title={verificationTooltip}
               >
                 <ShieldCheckIcon className={verificationDesktopIconClass} />
                 <span className="whitespace-nowrap">{verificationLabel}</span>
