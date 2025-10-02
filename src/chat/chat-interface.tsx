@@ -1,8 +1,12 @@
 'use client'
 
-import { CONSTANTS } from '@/chat/constants'
 import { SettingsSidebar } from '@/chat/settings-sidebar'
 import { useChatSettings } from '@/chat/use-chat-settings'
+import {
+  DEFAULT_MODEL,
+  INFERENCE_PROXY_REPO,
+  INFERENCE_PROXY_URL,
+} from '@/config'
 import {
   ArrowUpIcon,
   Cog6ToothIcon,
@@ -47,7 +51,7 @@ export function ChatInterface() {
     setSystemPrompt: persistSystemPrompt,
   } = useChatSettings()
 
-  const modelName = CONSTANTS.DEFAULT_MODEL
+  const modelName = DEFAULT_MODEL
 
   // initialize tinfoil client with custom baseURL and configRepo
   // that support encrypted-http body payloads that are encrypted
@@ -55,8 +59,8 @@ export function ChatInterface() {
   const tinfoilClient = useMemo(() => {
     return new TinfoilAI({
       dangerouslyAllowBrowser: true,
-      baseURL: 'https://ehbp.inf6.tinfoil.sh/v1/',
-      configRepo: 'tinfoilsh/confidential-inference-proxy-hpke',
+      baseURL: INFERENCE_PROXY_URL,
+      configRepo: INFERENCE_PROXY_REPO || undefined,
       apiKey: apiKey.trim() || 'placeholder-key-not-yet-configured',
     })
   }, [apiKey])
@@ -87,13 +91,6 @@ export function ChatInterface() {
   const loadVerificationDocument = useCallback(async () => {
     if (!isMountedRef.current) return
 
-    if (!apiKey) {
-      setVerificationDocument(null)
-      setVerificationState('idle')
-      setVerificationError(null)
-      return
-    }
-
     setVerificationState('loading')
     setVerificationError(null)
 
@@ -116,7 +113,7 @@ export function ChatInterface() {
       setVerificationError(message)
       setVerificationState('error')
     }
-  }, [apiKey, tinfoilClient])
+  }, [tinfoilClient])
 
   useEffect(() => {
     void loadVerificationDocument()
@@ -162,11 +159,17 @@ export function ChatInterface() {
     if (verificationState === 'success') return 'Enclave verified'
     if (verificationState === 'loading') return 'Verifying enclave...'
     if (verificationState === 'error') {
+      return 'Verification failed'
+    }
+    return 'Verification center'
+  }, [verificationState])
+
+  const verificationTooltip = useMemo(() => {
+    if (verificationState === 'error') {
       return verificationError ?? 'Verification unavailable'
     }
-    if (!apiKey) return 'Add API key to verify'
-    return 'Verification center'
-  }, [apiKey, verificationError, verificationState])
+    return verificationLabel
+  }, [verificationError, verificationLabel, verificationState])
 
   const handleStream = useCallback(
     async (conversation: ChatMessage[], assistantId: string) => {
@@ -323,7 +326,7 @@ export function ChatInterface() {
                   setIsVerifierOpen((prev) => !prev)
                 }}
                 className="rounded-md border border-border-subtle bg-surface-chat p-2 text-content-muted transition hover:text-content-primary md:hidden"
-                title={verificationLabel}
+                title={verificationTooltip}
               >
                 <ShieldCheckIcon className={verificationStatusIconClass} />
               </button>
@@ -339,7 +342,7 @@ export function ChatInterface() {
                   setIsVerifierOpen((prev) => !prev)
                 }}
                 className={verificationButtonClass}
-                title={verificationLabel}
+                title={verificationTooltip}
               >
                 <ShieldCheckIcon className={verificationDesktopIconClass} />
                 <span className="whitespace-nowrap">{verificationLabel}</span>
@@ -425,8 +428,8 @@ export function ChatInterface() {
         mode="modal"
         is-dark-mode="false"
         show-verification-flow="false"
-        config-repo={'tinfoilsh/confidential-inference-proxy-hpke'}
-        base-url={'https://ehbp.inf6.tinfoil.sh/v1/'}
+        config-repo={INFERENCE_PROXY_REPO}
+        base-url={INFERENCE_PROXY_URL}
       />
     </>
   )
