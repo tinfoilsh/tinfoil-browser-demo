@@ -3,10 +3,14 @@
 import { CONSTANTS } from '@/chat/constants'
 import { SettingsSidebar } from '@/chat/settings-sidebar'
 import { useChatSettings } from '@/chat/use-chat-settings'
-import { ArrowUpIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowUpIcon,
+  Cog6ToothIcon,
+  ShieldCheckIcon,
+} from '@heroicons/react/24/outline'
 import clsx from 'clsx'
-import { useCallback, useMemo, useState } from 'react'
-import { TinfoilAI } from 'tinfoil'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { TinfoilAI, type VerificationDocument } from 'tinfoil'
 
 type ChatRole = 'user' | 'assistant'
 
@@ -22,6 +26,19 @@ export function ChatInterface() {
   const [streamError, setStreamError] = useState<string | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [isVerifierOpen, setIsVerifierOpen] = useState(false)
+  const [verificationDocument, setVerificationDocument] =
+    useState<VerificationDocument | null>(null)
+  const [verificationState, setVerificationState] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [verificationError, setVerificationError] = useState<string | null>(
+    null,
+  )
+  const verificationCenterRef = useRef<TinfoilVerificationCenterElement | null>(
+    null,
+  )
+  const isMountedRef = useRef(true)
 
   const {
     apiKey,
@@ -44,9 +61,116 @@ export function ChatInterface() {
     })
   }, [apiKey])
 
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    void import('@tinfoilsh/verification-center-ui').catch((error) => {
+      if (isCancelled) return
+      console.error('Unable to load verification center UI', error, {
+        component: 'ChatInterface',
+        action: 'importVerificationCenter',
+      })
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  const loadVerificationDocument = useCallback(async () => {
+    if (!isMountedRef.current) return
+
+    if (!apiKey) {
+      setVerificationDocument(null)
+      setVerificationState('idle')
+      setVerificationError(null)
+      return
+    }
+
+    setVerificationState('loading')
+    setVerificationError(null)
+
+    try {
+      await tinfoilClient.ready()
+      const document = await tinfoilClient.getVerificationDocument()
+      if (!isMountedRef.current) return
+      setVerificationDocument(document)
+      setVerificationState('success')
+    } catch (error) {
+      if (!isMountedRef.current) return
+      console.error('Unable to load verification document', error, {
+        component: 'ChatInterface',
+        action: 'loadVerificationDocument',
+      })
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to verify the enclave. Try again.'
+      setVerificationError(message)
+      setVerificationState('error')
+    }
+  }, [apiKey, tinfoilClient])
+
+  useEffect(() => {
+    void loadVerificationDocument()
+  }, [loadVerificationDocument])
+
+  useEffect(() => {
+    const element = verificationCenterRef.current
+    if (!element) return
+
+    if (isVerifierOpen) {
+      element.setAttribute('open', '')
+    } else {
+      element.removeAttribute('open')
+    }
+  }, [isVerifierOpen])
+
+  useEffect(() => {
+    const element = verificationCenterRef.current
+    if (!element) return
+
+    if (verificationDocument) {
+      element.verificationDocument = verificationDocument
+    } else {
+      element.verificationDocument = undefined
+    }
+  }, [verificationDocument])
+
+  useEffect(() => {
+    const element = verificationCenterRef.current
+    if (!element) return
+
+    const handleClose = () => {
+      setIsVerifierOpen(false)
+    }
+
+    element.addEventListener('close', handleClose)
+    return () => {
+      element.removeEventListener('close', handleClose)
+    }
+  }, [])
+
+  const verificationLabel = useMemo(() => {
+    if (verificationState === 'success') return 'Enclave verified'
+    if (verificationState === 'loading') return 'Verifying enclave...'
+    if (verificationState === 'error') {
+      return verificationError ?? 'Verification unavailable'
+    }
+    if (!apiKey) return 'Add API key to verify'
+    return 'Verification center'
+  }, [apiKey, verificationError, verificationState])
+
   const handleStream = useCallback(
     async (conversation: ChatMessage[], assistantId: string) => {
-      if (!apiKey.trim()) {
+      if (!apiKey) {
         setStreamError('Add an API key in settings before sending a message.')
         return
       }
@@ -151,99 +275,160 @@ export function ChatInterface() {
     [inputValue, isStreaming, sendMessage],
   )
 
+  const verificationStatusIconClass = clsx('h-5 w-5', {
+    'text-emerald-400': verificationState === 'success',
+    'text-destructive': verificationState === 'error',
+    'text-content-muted':
+      verificationState === 'idle' || verificationState === 'loading',
+  })
+  const verificationDesktopIconClass = clsx('h-4 w-4', {
+    'text-emerald-400': verificationState === 'success',
+    'text-destructive': verificationState === 'error',
+    'text-content-muted':
+      verificationState === 'idle' || verificationState === 'loading',
+  })
+  const verificationButtonClass = clsx(
+    'hidden items-center gap-2 rounded-md border border-border-subtle bg-surface-chat px-3 py-2 text-xs font-medium text-content-secondary transition hover:text-content-primary md:flex',
+    verificationState === 'error' && 'text-destructive hover:text-destructive',
+  )
+
   return (
-    <div className="bg-surface-app flex h-full min-h-screen w-full min-w-0 text-content-primary">
-      <SettingsSidebar
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        apiKey={apiKey}
-        onChangeApiKey={persistApiKey}
-        systemPrompt={systemPrompt}
-        onChangeSystemPrompt={persistSystemPrompt}
-      />
+    <>
+      <div className="bg-surface-app flex h-full min-h-screen w-full min-w-0 text-content-primary">
+        <SettingsSidebar
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          apiKey={apiKey}
+          onChangeApiKey={persistApiKey}
+          systemPrompt={systemPrompt}
+          onChangeSystemPrompt={persistSystemPrompt}
+        />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
-          <div className="hidden text-sm text-content-secondary md:block">
-            {modelName}
-          </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
+            <div className="hidden text-sm text-content-secondary md:block">
+              {modelName}
+            </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              aria-label="Open settings"
-              className="rounded-md border border-border-subtle bg-surface-chat p-2 text-content-muted transition hover:text-content-primary md:hidden"
-            >
-              <Cog6ToothIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-label="Toggle verification center"
+                aria-pressed={isVerifierOpen}
+                onClick={() => {
+                  if (!isVerifierOpen && verificationState === 'error') {
+                    void loadVerificationDocument()
+                  }
+                  setIsVerifierOpen((prev) => !prev)
+                }}
+                className="rounded-md border border-border-subtle bg-surface-chat p-2 text-content-muted transition hover:text-content-primary md:hidden"
+                title={verificationLabel}
+              >
+                <ShieldCheckIcon className={verificationStatusIconClass} />
+              </button>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-6">
-            {messages.length === 0 ? (
-              <EmptyState modelName={modelName} />
-            ) : (
-              <div className="mx-auto flex max-w-3xl flex-col gap-4">
-                {messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
-                ))}
-              </div>
-            )}
-          </div>
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-pressed={isVerifierOpen}
+                onClick={() => {
+                  if (!isVerifierOpen && verificationState === 'error') {
+                    void loadVerificationDocument()
+                  }
+                  setIsVerifierOpen((prev) => !prev)
+                }}
+                className={verificationButtonClass}
+                title={verificationLabel}
+              >
+                <ShieldCheckIcon className={verificationDesktopIconClass} />
+                <span className="whitespace-nowrap">{verificationLabel}</span>
+              </button>
 
-          <div className="border-t border-border-subtle bg-surface-card px-4 py-4">
-            {streamError && (
-              <div className="mb-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {streamError}
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                aria-label="Open settings"
+                className="rounded-md border border-border-subtle bg-surface-chat p-2 text-content-muted transition hover:text-content-primary md:hidden"
+              >
+                <Cog6ToothIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </header>
 
-            <form
-              onSubmit={(event) => {
-                void handleSubmit(event)
-              }}
-              className="mx-auto flex max-w-3xl flex-col gap-3"
-            >
-              <div className="relative">
-                <textarea
-                  value={inputValue}
-                  onChange={(event) => setInputValue(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault()
-                      void handleSubmit()
-                    }
-                  }}
-                  rows={3}
-                  placeholder="Ask something..."
-                  className="w-full resize-none rounded-md border border-border-subtle bg-surface-chat px-3 py-3 pr-12 text-sm text-content-primary shadow-sm outline-none focus:border-border-strong"
-                  disabled={isStreaming}
-                />
-                <button
-                  type="submit"
-                  disabled={isStreaming || !inputValue.trim()}
-                  aria-label="Send"
-                  className={clsx(
-                    'absolute bottom-3 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-content-primary text-surface-card transition',
-                    isStreaming || !inputValue.trim()
-                      ? 'cursor-not-allowed opacity-60'
-                      : 'hover:bg-content-primary/80',
-                  )}
-                >
-                  <ArrowUpIcon className="h-4 w-4" />
-                </button>
-              </div>
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              {messages.length === 0 ? (
+                <EmptyState modelName={modelName} />
+              ) : (
+                <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))}
+                </div>
+              )}
+            </div>
 
-              <div className="flex items-center justify-between text-xs text-content-muted">
-                <span>Press Enter to send, Shift + Enter for a new line</span>
-              </div>
-            </form>
-          </div>
-        </main>
+            <div className="border-t border-border-subtle bg-surface-card px-4 py-4">
+              {streamError && (
+                <div className="mb-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {streamError}
+                </div>
+              )}
+
+              <form
+                onSubmit={(event) => {
+                  void handleSubmit(event)
+                }}
+                className="mx-auto flex max-w-3xl flex-col gap-3"
+              >
+                <div className="relative">
+                  <textarea
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        void handleSubmit()
+                      }
+                    }}
+                    rows={3}
+                    placeholder="Ask something..."
+                    className="w-full resize-none rounded-md border border-border-subtle bg-surface-chat px-3 py-3 pr-12 text-sm text-content-primary shadow-sm outline-none focus:border-border-strong"
+                    disabled={isStreaming}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isStreaming || !inputValue.trim()}
+                    aria-label="Send"
+                    className={clsx(
+                      'absolute bottom-3 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-content-primary text-surface-card transition',
+                      isStreaming || !inputValue.trim()
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'hover:bg-content-primary/80',
+                    )}
+                  >
+                    <ArrowUpIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-content-muted">
+                  <span>Press Enter to send, Shift + Enter for a new line</span>
+                </div>
+              </form>
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+      <tinfoil-verification-center
+        ref={verificationCenterRef}
+        mode="modal"
+        is-dark-mode="false"
+        show-verification-flow="false"
+        config-repo={'tinfoilsh/confidential-inference-proxy-hpke'}
+        base-url={'https://ehbp.inf6.tinfoil.sh/v1/'}
+      />
+    </>
   )
 }
 
