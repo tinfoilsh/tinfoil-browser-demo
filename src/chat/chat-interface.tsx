@@ -53,22 +53,31 @@ export function ChatInterface() {
 
   const modelName = DEFAULT_MODEL
 
-  // initialize tinfoil client with custom baseURL and configRepo
-  // that support encrypted-http body payloads that are encrypted
-  // with the hpke key of the secure enclave
-  const tinfoilClient = useMemo(() => {
-    return new TinfoilAI({
+  const tinfoilClientRef = useRef<TinfoilAI | null>(null)
+
+  const createTinfoilClient = useCallback(() => {
+    const client = new TinfoilAI({
       dangerouslyAllowBrowser: true,
       baseURL: INFERENCE_PROXY_URL,
       configRepo: INFERENCE_PROXY_REPO || undefined,
       apiKey: apiKey.trim() || 'placeholder-key-not-yet-configured',
     })
+    tinfoilClientRef.current = client
+    return client
   }, [apiKey])
+
+  const getTinfoilClient = useCallback(() => {
+    if (!tinfoilClientRef.current) {
+      return createTinfoilClient()
+    }
+    return tinfoilClientRef.current
+  }, [createTinfoilClient])
 
   useEffect(() => {
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
+      tinfoilClientRef.current = null
     }
   }, [])
 
@@ -88,35 +97,42 @@ export function ChatInterface() {
     }
   }, [])
 
-  const loadVerificationDocument = useCallback(async () => {
-    if (!isMountedRef.current) return
+  const loadVerificationDocument = useCallback(
+    async ({ reinitialize = false }: { reinitialize?: boolean } = {}) => {
+      if (!isMountedRef.current) return null
 
-    setVerificationState('loading')
-    setVerificationError(null)
+      setVerificationState('loading')
+      setVerificationError(null)
 
-    try {
-      await tinfoilClient.ready()
-      const document = await tinfoilClient.getVerificationDocument()
-      if (!isMountedRef.current) return
-      setVerificationDocument(document)
-      setVerificationState('success')
-    } catch (error) {
-      if (!isMountedRef.current) return
-      console.error('Unable to load verification document', error, {
-        component: 'ChatInterface',
-        action: 'loadVerificationDocument',
-      })
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unable to verify the enclave. Try again.'
-      setVerificationError(message)
-      setVerificationState('error')
-    }
-  }, [tinfoilClient])
+      try {
+        const client = reinitialize ? createTinfoilClient() : getTinfoilClient()
+        await client.ready()
+        const document = await client.getVerificationDocument()
+        if (!isMountedRef.current) return null
+        setVerificationDocument(document)
+        setVerificationState('success')
+        return document
+      } catch (error) {
+        if (!isMountedRef.current) return null
+        console.error('Unable to load verification document', error, {
+          component: 'ChatInterface',
+          action: 'loadVerificationDocument',
+        })
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Unable to verify the enclave. Try again.'
+        setVerificationError(message)
+        setVerificationState('error')
+        setVerificationDocument(null)
+        return null
+      }
+    },
+    [createTinfoilClient, getTinfoilClient],
+  )
 
   useEffect(() => {
-    void loadVerificationDocument()
+    void loadVerificationDocument({ reinitialize: true })
   }, [loadVerificationDocument])
 
   useEffect(() => {
@@ -140,6 +156,18 @@ export function ChatInterface() {
       element.verificationDocument = undefined
     }
   }, [verificationDocument])
+
+  useEffect(() => {
+    const element = verificationCenterRef.current
+    if (!element) return
+
+    element.onRequestVerificationDocument = () =>
+      loadVerificationDocument({ reinitialize: true })
+
+    return () => {
+      element.onRequestVerificationDocument = undefined
+    }
+  }, [loadVerificationDocument])
 
   useEffect(() => {
     const element = verificationCenterRef.current
@@ -182,9 +210,10 @@ export function ChatInterface() {
         setIsStreaming(true)
         setStreamError(null)
 
-        await tinfoilClient.ready()
+        const client = getTinfoilClient()
+        await client.ready()
 
-        const completionStream = await tinfoilClient.chat.completions.create({
+        const completionStream = await client.chat.completions.create({
           model: modelName,
           messages: [
             { role: 'system' as const, content: systemPrompt },
@@ -240,7 +269,7 @@ export function ChatInterface() {
         setIsStreaming(false)
       }
     },
-    [apiKey, modelName, systemPrompt, tinfoilClient],
+    [apiKey, getTinfoilClient, modelName, systemPrompt],
   )
 
   const sendMessage = useCallback(
@@ -321,7 +350,7 @@ export function ChatInterface() {
                 aria-pressed={isVerifierOpen}
                 onClick={() => {
                   if (!isVerifierOpen && verificationState === 'error') {
-                    void loadVerificationDocument()
+                    void loadVerificationDocument({ reinitialize: true })
                   }
                   setIsVerifierOpen((prev) => !prev)
                 }}
@@ -337,7 +366,7 @@ export function ChatInterface() {
                 aria-pressed={isVerifierOpen}
                 onClick={() => {
                   if (!isVerifierOpen && verificationState === 'error') {
-                    void loadVerificationDocument()
+                    void loadVerificationDocument({ reinitialize: true })
                   }
                   setIsVerifierOpen((prev) => !prev)
                 }}
@@ -428,8 +457,6 @@ export function ChatInterface() {
         mode="modal"
         is-dark-mode="false"
         show-verification-flow="false"
-        config-repo={INFERENCE_PROXY_REPO}
-        base-url={INFERENCE_PROXY_URL}
       />
     </>
   )

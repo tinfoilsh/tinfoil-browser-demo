@@ -4,6 +4,11 @@ import type { VerificationDocument } from 'tinfoil'
 declare global {
   interface TinfoilVerificationCenterElement extends HTMLElement {
     verificationDocument?: VerificationDocument
+    onRequestVerificationDocument?: () =>
+      | VerificationDocument
+      | null
+      | undefined
+      | Promise<VerificationDocument | null | undefined>
   }
 }
 
@@ -18,8 +23,6 @@ type VerificationCenterProps = HTMLProps & {
   'sidebar-width'?: number | string
   'is-dark-mode'?: string | boolean
   'show-verification-flow'?: string | boolean
-  'config-repo'?: string
-  'base-url'?: string
 }
 
 declare global {
