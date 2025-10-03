@@ -59,6 +59,7 @@ export function ChatInterface() {
     const client = new TinfoilAI({
       dangerouslyAllowBrowser: true,
       baseURL: INFERENCE_PROXY_URL,
+      enclaveURL: INFERENCE_PROXY_URL,
       configRepo: INFERENCE_PROXY_REPO || undefined,
       apiKey: apiKey.trim() || 'placeholder-key-not-yet-configured',
     })
@@ -452,12 +453,6 @@ export function ChatInterface() {
           </main>
         </div>
       </div>
-      <tinfoil-verification-center
-        ref={verificationCenterRef}
-        mode="modal"
-        is-dark-mode="false"
-        show-verification-flow="false"
-      />
     </>
   )
 }
