@@ -64,28 +64,22 @@ module.exports = {
           dark: 'hsl(var(--color-brand-dark) / <alpha-value>)',
           light: 'hsl(var(--color-brand-light) / <alpha-value>)',
           'accent-dark': 'hsl(var(--color-accent-dark) / <alpha-value>)',
-          'accent-dark-darker':
-            'hsl(var(--color-accent-dark-darker) / <alpha-value>)',
+          'accent-dark-darker': 'hsl(var(--color-accent-dark-darker) / <alpha-value>)',
           'accent-light': 'hsl(var(--color-accent-light) / <alpha-value>)',
-          'accent-light-darker':
-            'hsl(var(--color-accent-light-darker) / <alpha-value>)',
+          'accent-light-darker': 'hsl(var(--color-accent-light-darker) / <alpha-value>)',
         },
         surface: {
           background: 'hsl(var(--surface-background) / <alpha-value>)',
           chat: 'hsl(var(--surface-chat) / <alpha-value>)',
-          'chat-background':
-            'hsl(var(--surface-chat-background) / <alpha-value>)',
+          'chat-background': 'hsl(var(--surface-chat-background) / <alpha-value>)',
           sidebar: 'hsl(var(--surface-sidebar) / <alpha-value>)',
-          'sidebar-button':
-            'hsl(var(--surface-sidebar-button) / <alpha-value>)',
-          'sidebar-button-hover':
-            'hsl(var(--surface-sidebar-button-hover) / <alpha-value>)',
+          'sidebar-button': 'hsl(var(--surface-sidebar-button) / <alpha-value>)',
+          'sidebar-button-hover': 'hsl(var(--surface-sidebar-button-hover) / <alpha-value>)',
           settings: 'hsl(var(--surface-settings) / <alpha-value>)',
           input: 'hsl(var(--surface-input) / <alpha-value>)',
           thinking: 'hsl(var(--surface-thinking) / <alpha-value>)',
           'message-user': 'hsl(var(--surface-message-user) / <alpha-value>)',
-          'message-assistant':
-            'hsl(var(--surface-message-assistant) / <alpha-value>)',
+          'message-assistant': 'hsl(var(--surface-message-assistant) / <alpha-value>)',
           card: 'hsl(var(--surface-card) / <alpha-value>)',
         },
         content: {
@@ -108,10 +102,8 @@ module.exports = {
           950: 'hsl(var(--gray-950) / <alpha-value>)',
         },
         button: {
-          'send-background':
-            'hsl(var(--button-send-background) / <alpha-value>)',
-          'send-foreground':
-            'hsl(var(--button-send-foreground) / <alpha-value>)',
+          'send-background': 'hsl(var(--button-send-background) / <alpha-value>)',
+          'send-foreground': 'hsl(var(--button-send-foreground) / <alpha-value>)',
         },
         'border-subtle': 'hsl(var(--border-subtle) / <alpha-value>)',
         'border-strong': 'hsl(var(--border-strong) / <alpha-value>)',

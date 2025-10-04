@@ -12,8 +12,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Tinfoil Browser Integration Demo',
-  description:
-    'Minimal browser integration demo for testing streaming and model configurations.',
+  description: 'Minimal browser integration demo for testing streaming and model configurations.',
 }
 
 // Ensure proper mobile viewport behavior (iOS Safari friendly)
@@ -29,13 +28,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} h-full w-full overflow-x-hidden`}
-    >
-      <body className="bg-surface-app h-full w-full overflow-x-hidden font-sans text-content-primary">
-        {children}
-      </body>
+    <html lang="en" className={`${inter.variable} h-full w-full overflow-x-hidden`}>
+      <body className="bg-surface-app h-full w-full overflow-x-hidden font-sans text-content-primary">{children}</body>
     </html>
   )
 }

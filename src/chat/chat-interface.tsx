@@ -2,16 +2,8 @@
 
 import { SettingsSidebar } from '@/chat/settings-sidebar'
 import { useChatSettings } from '@/chat/use-chat-settings'
-import {
-  DEFAULT_MODEL,
-  INFERENCE_PROXY_REPO,
-  INFERENCE_PROXY_URL,
-} from '@/config'
-import {
-  ArrowUpIcon,
-  Cog6ToothIcon,
-  ShieldCheckIcon,
-} from '@heroicons/react/24/outline'
+import { DEFAULT_MODEL, INFERENCE_PROXY_REPO, INFERENCE_PROXY_URL } from '@/config'
+import { ArrowUpIcon, Cog6ToothIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TinfoilAI, type VerificationDocument } from 'tinfoil'
@@ -31,25 +23,13 @@ export function ChatInterface() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isVerifierOpen, setIsVerifierOpen] = useState(false)
-  const [verificationDocument, setVerificationDocument] =
-    useState<VerificationDocument | null>(null)
-  const [verificationState, setVerificationState] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-  const [verificationError, setVerificationError] = useState<string | null>(
-    null,
-  )
-  const verificationCenterRef = useRef<TinfoilVerificationCenterElement | null>(
-    null,
-  )
+  const [verificationDocument, setVerificationDocument] = useState<VerificationDocument | null>(null)
+  const [verificationState, setVerificationState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [verificationError, setVerificationError] = useState<string | null>(null)
+  const verificationCenterRef = useRef<TinfoilVerificationCenterElement | null>(null)
   const isMountedRef = useRef(true)
 
-  const {
-    apiKey,
-    setApiKey: persistApiKey,
-    systemPrompt,
-    setSystemPrompt: persistSystemPrompt,
-  } = useChatSettings()
+  const { apiKey, setApiKey: persistApiKey, systemPrompt, setSystemPrompt: persistSystemPrompt } = useChatSettings()
 
   const modelName = DEFAULT_MODEL
 
@@ -119,10 +99,7 @@ export function ChatInterface() {
           component: 'ChatInterface',
           action: 'loadVerificationDocument',
         })
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Unable to verify the enclave. Try again.'
+        const message = error instanceof Error ? error.message : 'Unable to verify the enclave. Try again.'
         setVerificationError(message)
         setVerificationState('error')
         setVerificationDocument(null)
@@ -162,8 +139,7 @@ export function ChatInterface() {
     const element = verificationCenterRef.current
     if (!element) return
 
-    element.onRequestVerificationDocument = () =>
-      loadVerificationDocument({ reinitialize: true })
+    element.onRequestVerificationDocument = () => loadVerificationDocument({ reinitialize: true })
 
     return () => {
       element.onRequestVerificationDocument = undefined
@@ -250,8 +226,7 @@ export function ChatInterface() {
           action: 'stream',
         })
 
-        const fullMessage =
-          error instanceof Error ? error.stack || error.message : String(error)
+        const fullMessage = error instanceof Error ? error.stack || error.message : String(error)
 
         setStreamError(fullMessage)
 
@@ -260,8 +235,7 @@ export function ChatInterface() {
             msg.id === assistantId
               ? {
                   ...msg,
-                  content:
-                    'Unable to complete the request. Check the settings and try again.',
+                  content: 'Unable to complete the request. Check the settings and try again.',
                 }
               : msg,
           ),
@@ -311,14 +285,12 @@ export function ChatInterface() {
   const verificationStatusIconClass = clsx('h-5 w-5', {
     'text-emerald-400': verificationState === 'success',
     'text-destructive': verificationState === 'error',
-    'text-content-muted':
-      verificationState === 'idle' || verificationState === 'loading',
+    'text-content-muted': verificationState === 'idle' || verificationState === 'loading',
   })
   const verificationDesktopIconClass = clsx('h-4 w-4', {
     'text-emerald-400': verificationState === 'success',
     'text-destructive': verificationState === 'error',
-    'text-content-muted':
-      verificationState === 'idle' || verificationState === 'loading',
+    'text-content-muted': verificationState === 'idle' || verificationState === 'loading',
   })
   const verificationButtonClass = clsx(
     'hidden items-center gap-2 rounded-md border border-border-subtle bg-surface-chat px-3 py-2 text-xs font-medium text-content-secondary transition hover:text-content-primary md:flex',
@@ -339,9 +311,7 @@ export function ChatInterface() {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
-            <div className="hidden text-sm text-content-secondary md:block">
-              {modelName}
-            </div>
+            <div className="hidden text-sm text-content-secondary md:block">{modelName}</div>
 
             <div className="flex items-center gap-3">
               <button
@@ -464,18 +434,11 @@ type MessageBubbleProps = {
 function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user'
   return (
-    <div
-      className={clsx(
-        'flex w-full justify-start',
-        isUser ? 'justify-end' : 'justify-start',
-      )}
-    >
+    <div className={clsx('flex w-full justify-start', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={clsx(
           'max-w-[80%] rounded-lg px-4 py-3 text-sm shadow-sm',
-          isUser
-            ? 'bg-content-primary text-surface-card'
-            : 'bg-surface-chat text-content-primary',
+          isUser ? 'bg-content-primary text-surface-card' : 'bg-surface-chat text-content-primary',
         )}
       >
         <pre className="whitespace-pre-wrap break-words font-sans text-sm">
@@ -493,9 +456,7 @@ type EmptyStateProps = {
 function EmptyState({ modelName }: EmptyStateProps) {
   return (
     <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center gap-4 text-center text-content-muted">
-      <h2 className="text-lg font-semibold text-content-primary">
-        Tinfoil Browser Integration Demo
-      </h2>
+      <h2 className="text-lg font-semibold text-content-primary">Tinfoil Browser Integration Demo</h2>
       <div className="rounded-md border border-border-subtle bg-surface-card px-4 py-2 text-xs text-content-secondary">
         {`Current model: ${modelName}`}
       </div>

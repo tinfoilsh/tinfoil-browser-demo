@@ -41,9 +41,7 @@ export function SettingsSidebar({
               className="h-7 w-auto self-start"
             />
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold text-content-primary">
-                Browser Integration Demo
-              </h2>
+              <h2 className="text-lg font-semibold text-content-primary">Browser Integration Demo</h2>
               <a
                 href="https://github.com/tinfoilsh/tinfoil-browser-demo"
                 target="_blank"
@@ -67,10 +65,7 @@ export function SettingsSidebar({
 
         <div className="max-h-[calc(100dvh-8rem)] space-y-6 overflow-y-auto px-6 text-sm">
           <div className="space-y-2">
-            <label
-              htmlFor="api-key"
-              className="block text-xs font-medium text-content-secondary"
-            >
+            <label htmlFor="api-key" className="block text-xs font-medium text-content-secondary">
               API Key
             </label>
             <input
@@ -82,16 +77,12 @@ export function SettingsSidebar({
               className="w-full rounded-md border border-border-subtle bg-surface-chat px-3 py-2 text-sm text-content-primary focus:border-border-strong focus:outline-none"
             />
             <p className="text-xs text-content-muted">
-              Stored locally in your browser. Required for remote inference
-              endpoints.
+              Stored locally in your browser. Required for remote inference endpoints.
             </p>
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="system-prompt"
-              className="block text-xs font-medium text-content-secondary"
-            >
+            <label htmlFor="system-prompt" className="block text-xs font-medium text-content-secondary">
               System Prompt
             </label>
             <textarea
@@ -104,12 +95,7 @@ export function SettingsSidebar({
           </div>
         </div>
       </aside>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={onClose} />}
     </>
   )
 }
