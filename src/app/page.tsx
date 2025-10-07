@@ -35,11 +35,9 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(true)
   const [isVerifierOpen, setIsVerifierOpen] = useState(false)
   const [verificationDocument, setVerificationDocument] = useState<VerificationDocument | null>(null)
-  const [webComponentsLoaded, setWebComponentsLoaded] = useState(false)
 
-  const verificationCenterRef = useRef<any>(null)
-  const badgeRef = useRef<any>(null)
-  const badgeClickHandlerRef = useRef<(() => void) | null>(null)
+  const verificationCenterIframeRef = useRef<HTMLIFrameElement>(null)
+  const badgeIframeRef = useRef<HTMLIFrameElement>(null)
   const isMountedRef = useRef(true)
   const tinfoilClientRef = useRef<TinfoilAI | null>(null)
 
@@ -67,9 +65,6 @@ export default function App() {
 
   useEffect(() => {
     isMountedRef.current = true
-    import('@tinfoilsh/verification-center-ui').then(() => {
-      setWebComponentsLoaded(true)
-    })
     return () => {
       isMountedRef.current = false
       tinfoilClientRef.current = null
@@ -108,42 +103,67 @@ export default function App() {
     void loadVerificationDocument({ reinitialize: true })
   }, [loadVerificationDocument])
 
-  const setVerificationCenterRef = useCallback((el: any) => {
-    if (verificationCenterRef.current) {
-      verificationCenterRef.current.removeEventListener('close', () => setIsVerifierOpen(false))
-    }
-    verificationCenterRef.current = el
-    if (el) {
-      el.addEventListener('close', () => setIsVerifierOpen(false))
-    }
-  }, [])
-
-  const setBadgeRef = useCallback((el: any) => {
-    if (badgeRef.current && badgeClickHandlerRef.current) {
-      badgeRef.current.removeEventListener('badge-click', badgeClickHandlerRef.current)
-    }
-    badgeRef.current = el
-    if (el) {
-      const handler = () => setIsVerifierOpen(true)
-      badgeClickHandlerRef.current = handler
-      el.addEventListener('badge-click', handler)
-    }
+  const sendVerificationDocument = useCallback((targetWindow: Window | null, document: VerificationDocument) => {
+    if (!targetWindow) return
+    targetWindow.postMessage(
+      {
+        type: 'TINFOIL_VERIFICATION_DOCUMENT',
+        document,
+      },
+      '*',
+    )
   }, [])
 
   useEffect(() => {
-    if (verificationCenterRef.current && webComponentsLoaded) {
-      verificationCenterRef.current.verificationDocument = verificationDocument
-      verificationCenterRef.current.onRequestVerificationDocument = async () => {
-        return await loadVerificationDocument({ reinitialize: true })
+    const handleMessage = (event: MessageEvent) => {
+      const { type } = event.data
+
+      if (type === 'TINFOIL_BADGE_READY' && verificationDocument) {
+        sendVerificationDocument(badgeIframeRef.current?.contentWindow ?? null, verificationDocument)
+      }
+
+      if (type === 'TINFOIL_BADGE_CLICK') {
+        setIsVerifierOpen(true)
+      }
+
+      if (type === 'TINFOIL_VERIFICATION_CENTER_READY' && verificationDocument) {
+        sendVerificationDocument(verificationCenterIframeRef.current?.contentWindow ?? null, verificationDocument)
+      }
+
+      if (type === 'TINFOIL_VERIFICATION_CENTER_CLOSED') {
+        setIsVerifierOpen(false)
+      }
+
+      if (type === 'TINFOIL_REQUEST_VERIFICATION_DOCUMENT') {
+        void loadVerificationDocument({ reinitialize: true }).then((doc) => {
+          if (doc) {
+            sendVerificationDocument(verificationCenterIframeRef.current?.contentWindow ?? null, doc)
+            sendVerificationDocument(badgeIframeRef.current?.contentWindow ?? null, doc)
+          }
+        })
       }
     }
-  }, [verificationDocument, webComponentsLoaded, loadVerificationDocument])
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [verificationDocument, loadVerificationDocument, sendVerificationDocument])
 
   useEffect(() => {
-    if (badgeRef.current && webComponentsLoaded) {
-      badgeRef.current.verificationDocument = verificationDocument
+    if (!isVerifierOpen || !verificationCenterIframeRef.current) return
+
+    const verifierWindow = verificationCenterIframeRef.current.contentWindow
+    verifierWindow?.postMessage({ type: 'TINFOIL_VERIFICATION_CENTER_OPEN' }, '*')
+
+    if (verificationDocument) {
+      sendVerificationDocument(verifierWindow, verificationDocument)
     }
-  }, [verificationDocument, webComponentsLoaded])
+  }, [isVerifierOpen, verificationDocument, sendVerificationDocument])
+
+  useEffect(() => {
+    if (verificationDocument) {
+      sendVerificationDocument(badgeIframeRef.current?.contentWindow ?? null, verificationDocument)
+    }
+  }, [verificationDocument, sendVerificationDocument])
 
   const handleStream = useCallback(
     async (conversation: ChatMessage[], assistantId: string) => {
@@ -276,7 +296,16 @@ export default function App() {
             </button>
             <div className="hidden text-sm text-content-secondary md:block">{DEFAULT_MODEL}</div>
           </div>
-          {apiKey && <tinfoil-badge ref={setBadgeRef as any} />}
+          {apiKey && (
+            <iframe
+              ref={badgeIframeRef}
+              src="https://verification-badge.tinfoil.sh"
+              width="180"
+              height="45"
+              className="border-0"
+              style={{ colorScheme: 'normal' }}
+            />
+          )}
         </header>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -341,13 +370,20 @@ export default function App() {
         </main>
       </div>
 
-      <tinfoil-verification-center
-        ref={setVerificationCenterRef as any}
-        open={isVerifierOpen ? 'true' : undefined}
-        is-dark-mode="false"
-        mode="modal"
-        show-verification-flow="true"
-      />
+      <div
+        className={clsx(
+          'fixed inset-y-0 right-0 z-50 w-96 transform bg-surface-card shadow-lg transition-transform duration-300 ease-in-out',
+          isVerifierOpen ? 'translate-x-0' : 'translate-x-full',
+        )}
+      >
+        <iframe
+          ref={verificationCenterIframeRef}
+          src="https://verification-center.tinfoil.sh?darkMode=false&showVerificationFlow=true&open=true&compact=true"
+          className="h-full w-full border-0"
+        />
+      </div>
+
+      {isVerifierOpen && <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setIsVerifierOpen(false)} />}
     </div>
   )
 }
