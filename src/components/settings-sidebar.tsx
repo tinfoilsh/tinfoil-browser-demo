@@ -1,6 +1,8 @@
 'use client'
 
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { MoonIcon, SunIcon, XMarkIcon } from '@heroicons/react/24/outline'
+
+type Theme = 'light' | 'dark'
 
 type SettingsSidebarProps = {
   isOpen: boolean
@@ -9,6 +11,8 @@ type SettingsSidebarProps = {
   onChangeApiKey: (value: string) => void
   systemPrompt: string
   onChangeSystemPrompt: (value: string) => void
+  theme: Theme
+  onChangeTheme: (value: Theme) => void
 }
 
 export function SettingsSidebar({
@@ -18,6 +22,8 @@ export function SettingsSidebar({
   onChangeApiKey,
   systemPrompt,
   onChangeSystemPrompt,
+  theme,
+  onChangeTheme,
 }: SettingsSidebarProps) {
   if (!isOpen) return null
 
@@ -35,6 +41,34 @@ export function SettingsSidebar({
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="theme" className="text-sm font-medium">
+              Theme
+            </label>
+            <button
+              onClick={() => onChangeTheme(theme === 'light' ? 'dark' : 'light')}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-border-strong focus:ring-offset-2"
+              style={{
+                backgroundColor: theme === 'dark' ? 'hsl(var(--border-strong))' : 'hsl(var(--border-subtle))',
+              }}
+              aria-label="Toggle theme"
+            >
+              <span
+                className={`inline-flex h-4 w-4 transform items-center justify-center rounded-full bg-surface-card transition-transform ${
+                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              >
+                {theme === 'light' ? (
+                  <SunIcon className="h-3 w-3 text-content-primary" />
+                ) : (
+                  <MoonIcon className="h-3 w-3 text-content-primary" />
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div>
           <label htmlFor="api-key" className="mb-2 block text-sm font-medium">
             API Key

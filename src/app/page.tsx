@@ -26,7 +26,7 @@ type ChatMessage = {
 }
 
 export default function App() {
-  const { apiKey, systemPrompt, setApiKey, setSystemPrompt } = useSettings()
+  const { apiKey, systemPrompt, theme, setApiKey, setSystemPrompt, setTheme } = useSettings()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
@@ -70,6 +70,12 @@ export default function App() {
       tinfoilClientRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.className =
+      document.documentElement.className.replace(/\b(light|dark)\b/g, '').trim() + ' ' + theme
+  }, [theme])
 
   const loadVerificationDocument = useCallback(
     async ({ reinitialize = false }: { reinitialize?: boolean } = {}) => {
@@ -274,117 +280,123 @@ export default function App() {
   )
 
   return (
-    <div className="bg-surface-app flex h-full min-h-screen w-full min-w-0 text-content-primary">
-      <SettingsSidebar
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        apiKey={apiKey}
-        onChangeApiKey={setApiKey}
-        systemPrompt={systemPrompt}
-        onChangeSystemPrompt={setSystemPrompt}
-      />
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="hover:bg-surface-hover rounded p-1.5 text-content-secondary transition hover:text-content-primary"
-              aria-label="Open settings"
-            >
-              <Cog6ToothIcon className="h-5 w-5" />
-            </button>
-            <div className="hidden text-sm text-content-secondary md:block">{DEFAULT_MODEL}</div>
-          </div>
-          {apiKey && (
-            <iframe
-              ref={badgeIframeRef}
-              src="https://verification-badge.tinfoil.sh"
-              width="180"
-              height="45"
-              className="border-0"
-              style={{ colorScheme: 'normal' }}
-            />
-          )}
-        </header>
-
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-6">
-            {messages.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="mx-auto flex max-w-3xl flex-col gap-4">
-                {messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-border-subtle bg-surface-card px-4 py-4">
-            {streamError && (
-              <div className="mb-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {streamError}
-              </div>
-            )}
-
-            <form
-              onSubmit={(event) => {
-                void handleSubmit(event)
-              }}
-              className="mx-auto flex max-w-3xl flex-col gap-3"
-            >
-              <div className="relative">
-                <textarea
-                  value={inputValue}
-                  onChange={(event) => setInputValue(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault()
-                      void handleSubmit()
-                    }
-                  }}
-                  rows={3}
-                  placeholder="Ask something..."
-                  className="w-full resize-none rounded-md border border-border-subtle bg-surface-chat px-3 py-3 pr-12 text-sm text-content-primary shadow-sm outline-none focus:border-border-strong"
-                  disabled={isStreaming}
-                />
-                <button
-                  type="submit"
-                  disabled={isStreaming || !inputValue.trim()}
-                  aria-label="Send"
-                  className={clsx(
-                    'absolute bottom-3 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-content-primary text-surface-card transition',
-                    isStreaming || !inputValue.trim() ? 'cursor-not-allowed opacity-60' : 'hover:bg-content-primary/80',
-                  )}
-                >
-                  <ArrowUpIcon className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-content-muted">
-                <span>Press Enter to send, Shift + Enter for a new line</span>
-              </div>
-            </form>
-          </div>
-        </main>
-      </div>
-
-      <div
-        className={clsx(
-          'fixed inset-y-0 right-0 z-50 w-96 transform bg-surface-card shadow-lg transition-transform duration-300 ease-in-out',
-          isVerifierOpen ? 'translate-x-0' : 'translate-x-full',
-        )}
-      >
-        <iframe
-          ref={verificationCenterIframeRef}
-          src="https://verification-center.tinfoil.sh?darkMode=false&showVerificationFlow=true&open=true&compact=true"
-          className="h-full w-full border-0"
+    <>
+      <div className="bg-surface-app flex h-full min-h-screen w-full min-w-0 text-content-primary">
+        <SettingsSidebar
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          apiKey={apiKey}
+          onChangeApiKey={setApiKey}
+          systemPrompt={systemPrompt}
+          onChangeSystemPrompt={setSystemPrompt}
+          theme={theme}
+          onChangeTheme={setTheme}
         />
-      </div>
 
-      {isVerifierOpen && <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setIsVerifierOpen(false)} />}
-    </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex items-center justify-between border-b border-border-subtle bg-surface-card px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="hover:bg-surface-hover rounded p-1.5 text-content-secondary transition hover:text-content-primary"
+                aria-label="Open settings"
+              >
+                <Cog6ToothIcon className="h-5 w-5" />
+              </button>
+              <div className="hidden text-sm text-content-secondary md:block">{DEFAULT_MODEL}</div>
+            </div>
+            {apiKey && (
+              <iframe
+                ref={badgeIframeRef}
+                src={`https://verification-badge.tinfoil.sh?theme=${theme}`}
+                width="180"
+                height="45"
+                className="border-0"
+                style={{ colorScheme: 'transparent' }}
+              />
+            )}
+          </header>
+
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              {messages.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                  {messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border-subtle bg-surface-card px-4 py-4">
+              {streamError && (
+                <div className="mb-3 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {streamError}
+                </div>
+              )}
+
+              <form
+                onSubmit={(event) => {
+                  void handleSubmit(event)
+                }}
+                className="mx-auto flex max-w-3xl flex-col gap-3"
+              >
+                <div className="relative">
+                  <textarea
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        void handleSubmit()
+                      }
+                    }}
+                    rows={3}
+                    placeholder="Ask something..."
+                    className="w-full resize-none rounded-md border border-border-subtle bg-surface-chat px-3 py-3 pr-12 text-sm text-content-primary shadow-sm outline-none focus:border-border-strong"
+                    disabled={isStreaming}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isStreaming || !inputValue.trim()}
+                    aria-label="Send"
+                    className={clsx(
+                      'absolute bottom-3 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-content-primary text-surface-card transition',
+                      isStreaming || !inputValue.trim()
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'hover:bg-content-primary/80',
+                    )}
+                  >
+                    <ArrowUpIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-content-muted">
+                  <span>Press Enter to send, Shift + Enter for a new line</span>
+                </div>
+              </form>
+            </div>
+          </main>
+        </div>
+
+        <div
+          className={clsx(
+            'fixed inset-y-0 right-0 z-50 w-[460px] transform bg-surface-card shadow-lg transition-transform duration-300 ease-in-out',
+            isVerifierOpen ? 'translate-x-0' : 'translate-x-full',
+          )}
+        >
+          <iframe
+            ref={verificationCenterIframeRef}
+            src={`https://verification-center.tinfoil.sh?darkMode=${theme === 'dark'}&showVerificationFlow=true&open=true&compact=true`}
+            className="h-full w-full border-0"
+          />
+        </div>
+
+        {isVerifierOpen && <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setIsVerifierOpen(false)} />}
+      </div>
+    </>
   )
 }
 
