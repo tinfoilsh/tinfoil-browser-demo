@@ -7,13 +7,11 @@ import clsx from 'clsx'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { TinfoilAI, type VerificationDocument } from 'tinfoil'
 
-const INFERENCE_PROXY_URL = (process.env.NEXT_PUBLIC_INFERENCE_PROXY_URL ?? 'https://ehbp.inf6.tinfoil.sh/v1/').replace(
-  /\/$/,
-  '',
-)
+const INFERENCE_PROXY_URL = (
+  process.env.NEXT_PUBLIC_INFERENCE_PROXY_URL ?? 'https://router.inf6.tinfoil.sh/v1/'
+).replace(/\/$/, '')
 
-const INFERENCE_PROXY_REPO =
-  process.env.NEXT_PUBLIC_INFERENCE_PROXY_REPO ?? 'tinfoilsh/confidential-inference-proxy-hpke'
+const INFERENCE_PROXY_REPO = process.env.NEXT_PUBLIC_INFERENCE_PROXY_REPO ?? 'tinfoilsh/confidential-model-router'
 
 const DEFAULT_MODEL = 'gpt-oss-120b'
 
